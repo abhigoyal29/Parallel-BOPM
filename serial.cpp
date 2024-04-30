@@ -4,6 +4,7 @@
 #include <iostream>
 #include <cstdio>
 #include <cmath>
+#include <chrono>
 using namespace std;
 /*
  * Node Declaration
@@ -125,8 +126,15 @@ int main()
     cin>>R;
     cout<<"Enter levels: ";
     cin>>N;
+
+    auto start_time = std::chrono::steady_clock::now();
     BinomialTree bt(S, V, N, T / N);
     double value = bt.getValue(K, R);
+
+    auto end_time = std::chrono::steady_clock::now();
+    std::chrono::duration<double> diff = end_time - start_time;
+    double seconds = diff.count();
+    std::cout << "Simulation Time = " << seconds << "\n";
     bt.print();
     cout<< "OPTION VALUE = " << value <<endl;
     return 0;
