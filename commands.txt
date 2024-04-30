@@ -1,0 +1,3 @@
+salloc --nodes 1 --qos interactive --time 00:05:00 --constraint cpu --account=m4341
+
+./serial
