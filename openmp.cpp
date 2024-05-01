@@ -5,7 +5,9 @@
 #include <cstdio>
 #include <cmath>
 #include <chrono>
+#include <omp.h>
 using namespace std;
+
 /*
  * Node Declaration
  */
@@ -32,8 +34,9 @@ class BinomialTree
 /*
  * Constructor
  */
-BinomialTree::BinomialTree(double price , double vol, int _n, double _tstep)
-{
+
+BinomialTree::BinomialTree(double price , double vol, int _n, double _tstep) {
+    omp_set_num_threads(64);
     n = _n;
     S = price;
     volatility = vol;
@@ -41,30 +44,28 @@ BinomialTree::BinomialTree(double price , double vol, int _n, double _tstep)
     tfin = n * tstep;
     upfactor = exp (volatility * sqrt (tstep));
     tree = new Node * [n];
-    for (int i = 0; i < n; i++)
-        tree[i] = new Node [i+1] ;
+    for (int i = 0; i < n; i++) {
+        tree[i] = new Node [i+1];
+    }
     tree[0][0].price = S;
     tree[0][0].time = 0.0;
+    
     double currtime = 0.0;
-    for (int i = 1; i < n; i++)
-    {
-        Node * currnode = tree[i];
+    for (int i = 1; i < n; i++) {
         currtime += tstep;
-        for (int j = 0; j <= i; j++, currnode++)
-        {
-            if (!j)
-            {
-                currnode->price = tree[i-1][j].price / upfactor ;
-                currnode->time = currtime;
-            }
-            else
-            {
-                currnode->price = tree[i-1][j-1].price * upfactor ;
-                currnode->time = currtime;
-            }
+        #pragma omp parallel for
+        for (int j = 0; j <= i; j++) {
+            int id = omp_get_thread_num();
+            int nthrds = omp_get_num_threads();
+            if (id == 0)
+                cout<<nthrds<<endl;
+            double price = j == 0 ? tree[i-1][j].price / upfactor : tree[i-1][j-1].price * upfactor;
+            tree[i][j].price = price;
+            tree[i][j].time = currtime;
         }
     }
 }
+
 /*
  * Get Value Function
  */
@@ -114,18 +115,25 @@ double BinomialTree::getValue(double K, double R)
 int main()
 {
     double S, V, K, T, R, N;
-    cout<<"Enter Security Price: ";
-    cin>>S;
-    cout<<"Enter Volatility: ";
-    cin>>V;
-    cout<<"Enter Call Strike Price: ";
-    cin>>K;
-    cout<<"Enter Time To Expiry: ";
-    cin>>T;
-    cout<<"Enter Risk Free Rate: ";
-    cin>>R;
-    cout<<"Enter levels: ";
-    cin>>N;
+    // cout<<"Enter Security Price: ";
+    // cin>>S;
+    // cout<<"Enter Volatility: ";
+    // cin>>V;
+    // cout<<"Enter Call Strike Price: ";
+    // cin>>K;
+    // cout<<"Enter Time To Expiry: ";
+    // cin>>T;
+    // cout<<"Enter Risk Free Rate: ";
+    // cin>>R;
+    // cout<<"Enter levels: ";
+    // cin>>N;
+
+    S=127.2;
+    V=0.2;
+    K=252;
+    T=12;
+    R=0.001;
+    N=33;
 
     auto start_time = std::chrono::steady_clock::now();
     BinomialTree bt(S, V, N, T / N);
