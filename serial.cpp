@@ -1,131 +1,98 @@
-/*
- * C++ Program to Implement Binomial Tree
- */
 #include <iostream>
-#include <cstdio>
 #include <cmath>
 #include <chrono>
 using namespace std;
-/*
- * Node Declaration
- */
+
 struct Node
 {
-    double price, time, optionvalue;
+    double price, optionvalue;
 };
-/*
- * Class Declaration
- */
+
 class BinomialTree
 {
-    private:
-        Node **tree;
-        int n;
-        double S, volatility, upfactor, tfin, tstep;
-        double getValue(int level, int node, double K, double R);
-        void initNode (int level, int node);
-    public:
-        BinomialTree(double S, double volatility, int n, double tstep);
-        double getValue(double K, double R);
-        void print();
+private:
+    Node **tree;
+    int n;
+    double S, volatility, upfactor, tfin, tstep;
+
+    void initNode(int level, int node);
+
+public:
+    BinomialTree(double S, double volatility, int n, double tstep);
+    double getValue(double K, double R);
+    void print();
 };
-/*
- * Constructor
- */
-BinomialTree::BinomialTree(double price , double vol, int _n, double _tstep)
+
+BinomialTree::BinomialTree(double price, double vol, int _n, double _tstep)
 {
     n = _n;
     S = price;
     volatility = vol;
     tstep = _tstep;
     tfin = n * tstep;
-    upfactor = exp (volatility * sqrt (tstep));
-    tree = new Node * [n];
+    upfactor = exp(volatility * sqrt(tstep));
+    tree = new Node*[n];
     for (int i = 0; i < n; i++)
-        tree[i] = new Node [i+1] ;
+        tree[i] = new Node[i+1];
+
     tree[0][0].price = S;
-    tree[0][0].time = 0.0;
-    double currtime = 0.0;
     for (int i = 1; i < n; i++)
     {
-        Node * currnode = tree[i];
-        currtime += tstep;
-        for (int j = 0; j <= i; j++, currnode++)
+        for (int j = 0; j <= i; j++)
         {
-            if (!j)
-            {
-                currnode->price = tree[i-1][j].price / upfactor ;
-                currnode->time = currtime;
-            }
+            if (j == 0)
+                tree[i][j].price = tree[i-1][j].price / upfactor;
             else
-            {
-                currnode->price = tree[i-1][j-1].price * upfactor ;
-                currnode->time = currtime;
-            }
+                tree[i][j].price = tree[i-1][j-1].price * upfactor;
         }
     }
 }
-/*
- * Get Value Function
- */
-double BinomialTree::getValue(int l, int node, double K, double df)
-{
-    if (l == (n-1))
-    {
-        if (K < tree[l][node].price)
-            return tree[l][node].optionvalue = tree[l][node].price - K;
-        else
-            return tree[l][node].optionvalue = 0.0;
-    }
-   else
-   {
-      double g1 = getValue(l + 1, node + 1, K, df);
-      double g2 = getValue(l + 1, node, K, df);
-      return tree[l][node].optionvalue = 0.5 * df * (g1 + g2);
-   }
-}
- 
-/*
- * Get Value Function
- */
+
 double BinomialTree::getValue(double K, double R)
 {
-    double discountfactor = exp (-R * tstep);
-    return getValue(0, 0, K, discountfactor);
+    double discountFactor = exp(-R * tstep);
+
+    // Set option values at maturity
+    for (int j = 0; j < n; j++)
+    {
+        tree[n-1][j].optionvalue = max(tree[n-1][j].price - K, 0.0);
+    }
+
+    // Calculate option values at earlier times
+    for (int i = n-2; i >= 0; i--)
+    {
+        for (int j = 0; j <= i; j++)
+        {
+            double g1 = tree[i+1][j+1].optionvalue;
+            double g2 = tree[i+1][j].optionvalue;
+            tree[i][j].optionvalue = 0.5 * discountFactor * (g1 + g2);
+        }
+    }
+
+    return tree[0][0].optionvalue;
 }
-/*
- * Display optimal values
- */
+
 void BinomialTree::print()
 {
     for (int i = 0; i < n; i++)
     {
-        for( int j = 0; j <= i; j++ )
+        for (int j = 0; j <= i; j++)
         {
-            cout<< "[" << tree[i][j].price << "," << tree[i][j].time << ",";
-            cout<< tree[i][j].optionvalue << "]\t";
+            cout << "[" << tree[i][j].price << ", " << tree[i][j].optionvalue << "]\t";
         }
-        cout <<endl;
-   }
+        cout << endl;
+    }
 }
-/*
- * Main Contains Menu
- */
+
 int main()
 {
     double S, V, K, T, R, N;
-    cout<<"Enter Security Price: ";
-    cin>>S;
-    cout<<"Enter Volatility: ";
-    cin>>V;
-    cout<<"Enter Call Strike Price: ";
-    cin>>K;
-    cout<<"Enter Time To Expiry: ";
-    cin>>T;
-    cout<<"Enter Risk Free Rate: ";
-    cin>>R;
-    cout<<"Enter levels: ";
-    cin>>N;
+    S=127.2;
+    V=0.2;
+    K=252;
+    T=12;
+    R=0.001;
+    N=33;
 
     auto start_time = std::chrono::steady_clock::now();
     BinomialTree bt(S, V, N, T / N);
@@ -135,7 +102,7 @@ int main()
     std::chrono::duration<double> diff = end_time - start_time;
     double seconds = diff.count();
     std::cout << "Simulation Time = " << seconds << "\n";
-    bt.print();
+    //bt.print();
     cout<< "OPTION VALUE = " << value <<endl;
     return 0;
 }
