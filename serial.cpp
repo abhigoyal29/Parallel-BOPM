@@ -73,7 +73,7 @@ int main()
     K = 252;
     T = 12;
     R = 0.001;
-    N = 33;
+    N = 50000;
 
     auto start_time = std::chrono::steady_clock::now();
     BinomialTree bt(S, V, N, T / N);
@@ -82,7 +82,7 @@ int main()
     auto end_time = std::chrono::steady_clock::now();
     std::chrono::duration<double> diff = end_time - start_time;
     double seconds = diff.count();
-    std::cout << "Simulation Time = " << seconds << "\n";
+    std::cout << "Simulation Time Serial = " << seconds << "\n";
     // bt.print();
     cout << "OPTION VALUE = " << value << endl;
     return 0;
