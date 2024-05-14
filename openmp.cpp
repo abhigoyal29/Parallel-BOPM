@@ -1,139 +1,110 @@
-/*
- * C++ Program to Implement Binomial Tree
- */
 #include <iostream>
-#include <cstdio>
 #include <cmath>
 #include <chrono>
-#include <omp.h>
 using namespace std;
 
-/*
- * Node Declaration
- */
 struct Node
 {
-    double price, time, optionvalue;
+    double price, optionvalue;
+    //char pad[64 - sizeof(double) * 2]; 
 };
-/*
- * Class Declaration
- */
+
+
 class BinomialTree
 {
-    private:
-        Node **tree;
-        int n;
-        double S, volatility, upfactor, tfin, tstep;
-        double getValue(int level, int node, double K, double R);
-        void initNode (int level, int node);
-    public:
-        BinomialTree(double S, double volatility, int n, double tstep);
-        double getValue(double K, double R);
-        //void print();
-};
-/*
- * Constructor
- */
+private:
+    Node **tree;
+    int n;
+    double S, volatility, upfactor, tfin, tstep;
 
-BinomialTree::BinomialTree(double price , double vol, int _n, double _tstep) {
-    omp_set_num_threads(64);
+    void initNode(int level, int node);
+
+public:
+    BinomialTree(double S, double volatility, int n, double tstep);
+    double getValue(double K, double R);
+    void print();
+};
+
+#include <omp.h>
+
+BinomialTree::BinomialTree(double price, double vol, int _n, double _tstep)
+{
     n = _n;
     S = price;
     volatility = vol;
     tstep = _tstep;
     tfin = n * tstep;
-    upfactor = exp (volatility * sqrt (tstep));
-    tree = new Node * [n];
-    for (int i = 0; i < n; i++) {
-        tree[i] = new Node [i+1];
-    }
+    upfactor = exp(volatility * sqrt(tstep));
+    tree = new Node*[n];
+    double op_price;
+    #pragma omp parallel for
+    for (int i = 0; i < n; i++)
+        tree[i] = new Node[i+1];
+
     tree[0][0].price = S;
-    tree[0][0].time = 0.0;
-    
-    double currtime = 0.0;
-    for (int i = 1; i < n; i++) {
-        currtime += tstep;
+    for (int i = 1; i < n; i++)
+    {
         #pragma omp parallel for
-        for (int j = 0; j <= i; j++) {
-            int id = omp_get_thread_num();
-            int nthrds = omp_get_num_threads();
-            if (id == 0)
-                cout<<nthrds<<endl;
-            double price = j == 0 ? tree[i-1][j].price / upfactor : tree[i-1][j-1].price * upfactor;
-            tree[i][j].price = price;
-            tree[i][j].time = currtime;
+        for (int j = 0; j <= i; j++)
+        {
+            if (j == 0)
+                op_price = tree[i-1][j].price / upfactor;
+            else
+                op_price = tree[i-1][j-1].price * upfactor;
+            tree[i][j].price = op_price;
         }
     }
 }
 
-/*
- * Get Value Function
- */
-double BinomialTree::getValue(int l, int node, double K, double df)
-{
-    if (l == (n-1))
-    {
-        if (K < tree[l][node].price)
-            return tree[l][node].optionvalue = tree[l][node].price - K;
-        else
-            return tree[l][node].optionvalue = 0.0;
-    }
-   else
-   {
-      double g1 = getValue(l + 1, node + 1, K, df);
-      double g2 = getValue(l + 1, node, K, df);
-      return tree[l][node].optionvalue = 0.5 * df * (g1 + g2);
-   }
-}
- 
-/*
- * Get Value Function
- */
+
 double BinomialTree::getValue(double K, double R)
 {
-    double discountfactor = exp (-R * tstep);
-    return getValue(0, 0, K, discountfactor);
+    double discountFactor = exp(-R * tstep);
+
+    // Set option values at maturity
+    #pragma omp parallel for
+    for (int j = 0; j < n; j++)
+    {
+        tree[n-1][j].optionvalue = max(tree[n-1][j].price - K, 0.0);
+    }
+
+    // Calculate option values at earlier times
+    for (int i = n-2; i >= 0; i--)
+    {
+        #pragma omp parallel for
+        for (int j = 0; j <= i; j++)
+        {
+            double g1 = tree[i+1][j+1].optionvalue;
+            double g2 = tree[i+1][j].optionvalue;
+            tree[i][j].optionvalue = 0.5 * discountFactor * (g1 + g2);
+        }
+    }
+
+    return tree[0][0].optionvalue;
 }
-/*
- * Display optimal values
- */
-// void BinomialTree::print()
-// {
-//     for (int i = 0; i < n; i++)
-//     {
-//         for( int j = 0; j <= i; j++ )
-//         {
-//             cout<< "[" << tree[i][j].price << "," << tree[i][j].time << ",";
-//             cout<< tree[i][j].optionvalue << "]\t";
-//         }
-//         cout <<endl;
-//    }
-// }
-/*
- * Main Contains Menu
- */
+
+
+void BinomialTree::print()
+{
+    for (int i = 0; i < n; i++)
+    {
+        for (int j = 0; j <= i; j++)
+        {
+            cout << "[" << tree[i][j].price << ", " << tree[i][j].optionvalue << "]\t";
+        }
+        cout << endl;
+    }
+}
+
 int main()
 {
     double S, V, K, T, R, N;
-    // cout<<"Enter Security Price: ";
-    // cin>>S;
-    // cout<<"Enter Volatility: ";
-    // cin>>V;
-    // cout<<"Enter Call Strike Price: ";
-    // cin>>K;
-    // cout<<"Enter Time To Expiry: ";
-    // cin>>T;
-    // cout<<"Enter Risk Free Rate: ";
-    // cin>>R;
-    // cout<<"Enter levels: ";
-    // cin>>N;
-
     S=127.2;
     V=0.2;
     K=252;
     T=12;
     R=0.001;
-    N=33;
+    N=50000;
 
     auto start_time = std::chrono::steady_clock::now();
     BinomialTree bt(S, V, N, T / N);
@@ -142,7 +113,7 @@ int main()
     auto end_time = std::chrono::steady_clock::now();
     std::chrono::duration<double> diff = end_time - start_time;
     double seconds = diff.count();
-    std::cout << "Simulation Time = " << seconds << "\n";
+    std::cout << "Simulation Time OpenMP = " << seconds << "\n";
     //bt.print();
     cout<< "OPTION VALUE = " << value <<endl;
     return 0;
