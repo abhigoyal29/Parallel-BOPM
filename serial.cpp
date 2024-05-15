@@ -1,27 +1,8 @@
 #include <iostream>
 #include <cmath>
 #include <chrono>
+#include "impl.h"
 using namespace std;
-
-struct Node
-{
-    double price, optionvalue;
-};
-
-class BinomialTree
-{
-private:
-    Node **tree;
-    int n;
-    double S, volatility, upfactor, tfin, tstep;
-
-    void initNode(int level, int node);
-
-public:
-    BinomialTree(double S, double volatility, int n, double tstep);
-    double getValue(double K, double R);
-    void print();
-};
 
 BinomialTree::BinomialTree(double price, double vol, int _n, double _tstep)
 {
@@ -31,9 +12,9 @@ BinomialTree::BinomialTree(double price, double vol, int _n, double _tstep)
     tstep = _tstep;
     tfin = n * tstep;
     upfactor = exp(volatility * sqrt(tstep));
-    tree = new Node*[n];
+    tree = new Node *[n];
     for (int i = 0; i < n; i++)
-        tree[i] = new Node[i+1];
+        tree[i] = new Node[i + 1];
 
     tree[0][0].price = S;
     for (int i = 1; i < n; i++)
@@ -41,9 +22,9 @@ BinomialTree::BinomialTree(double price, double vol, int _n, double _tstep)
         for (int j = 0; j <= i; j++)
         {
             if (j == 0)
-                tree[i][j].price = tree[i-1][j].price / upfactor;
+                tree[i][j].price = tree[i - 1][j].price / upfactor;
             else
-                tree[i][j].price = tree[i-1][j-1].price * upfactor;
+                tree[i][j].price = tree[i - 1][j - 1].price * upfactor;
         }
     }
 }
@@ -55,16 +36,16 @@ double BinomialTree::getValue(double K, double R)
     // Set option values at maturity
     for (int j = 0; j < n; j++)
     {
-        tree[n-1][j].optionvalue = max(tree[n-1][j].price - K, 0.0);
+        tree[n - 1][j].optionvalue = max(tree[n - 1][j].price - K, 0.0);
     }
 
     // Calculate option values at earlier times
-    for (int i = n-2; i >= 0; i--)
+    for (int i = n - 2; i >= 0; i--)
     {
         for (int j = 0; j <= i; j++)
         {
-            double g1 = tree[i+1][j+1].optionvalue;
-            double g2 = tree[i+1][j].optionvalue;
+            double g1 = tree[i + 1][j + 1].optionvalue;
+            double g2 = tree[i + 1][j].optionvalue;
             tree[i][j].optionvalue = 0.5 * discountFactor * (g1 + g2);
         }
     }
@@ -87,12 +68,12 @@ void BinomialTree::print()
 int main()
 {
     double S, V, K, T, R, N;
-    S=127.2;
-    V=0.2;
-    K=252;
-    T=12;
-    R=0.001;
-    N=50000;
+    S = 127.2;
+    V = 0.2;
+    K = 252;
+    T = 12;
+    R = 0.001;
+    N = 50000;
 
     auto start_time = std::chrono::steady_clock::now();
     BinomialTree bt(S, V, N, T / N);
@@ -102,7 +83,7 @@ int main()
     std::chrono::duration<double> diff = end_time - start_time;
     double seconds = diff.count();
     std::cout << "Simulation Time Serial = " << seconds << "\n";
-    //bt.print();
-    cout<< "OPTION VALUE = " << value <<endl;
+    // bt.print();
+    cout << "OPTION VALUE = " << value << endl;
     return 0;
 }
