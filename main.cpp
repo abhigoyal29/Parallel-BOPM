@@ -132,6 +132,6 @@ int main(int argc, char **argv)
 
   std::chrono::duration<double> diff = end_time - start_time;
   double seconds = diff.count();
-  cout << "Simulation Time Serial for " << N << " time steps and " << num_inputs << " contracts = " << seconds << endl;
+  cout << "Simulation Time for " << N << " time steps and " << num_inputs << " contracts = " << seconds << endl;
   // cout << "OPTION VALUE = " << value << endl;
 }
