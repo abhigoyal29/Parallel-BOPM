@@ -12,6 +12,7 @@ BinomialTree::BinomialTree(double price, double vol, int _n, double _tstep)
     tstep = _tstep;
     tfin = n * tstep;
     upfactor = exp(volatility * sqrt(tstep));
+    // cout << "upfactor" << upfactor << endl;
     tree = new Node *[n];
     for (int i = 0; i < n; i++)
         tree[i] = new Node[i + 1];
