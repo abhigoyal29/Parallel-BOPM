@@ -111,20 +111,13 @@ int main(int argc, char **argv)
 
   auto start_time = std::chrono::steady_clock::now();
 
-#ifdef _OPENMP
-#pragma omp parallel default(shared)
-#endif
+  for (int i = 0; i < num_inputs; i++)
   {
-    for (int i = 0; i < num_inputs; i++)
-    {
-      BinomialTree bt(S_vals[i], V_vals[i], N, T_vals[i] / N);
-      double value = bt.getValue(K_vals[i], R_vals[i]);
-#ifdef _OPENMP
-#pragma omp master
-#endif
-      if (output.good())
-        output << value << endl;
-    }
+    BinomialTree bt(S_vals[i], V_vals[i], N, T_vals[i] / N);
+    double value = bt.getValue(K_vals[i], R_vals[i]);
+
+    if (output.good())
+      output << value << endl;
   }
 
   auto end_time = std::chrono::steady_clock::now();
