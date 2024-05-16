@@ -1,34 +1,19 @@
 #include <chrono>
 #include <cmath>
+#include <string>
 #include <cstring>
 #include <fstream>
 #include <iostream>
 #include <random>
 #include <vector>
-#include <serial.cpp>
+#include "impl.h"
+using namespace std;
+
+#define num_inputs 1000
 
 // =================
 // Helper Functions
 // =================
-
-// I/O routines
-void save(std::ofstream &fsave, particle_t *parts, int num_parts, double size)
-{
-  static bool first = true;
-
-  if (first)
-  {
-    fsave << num_parts << " " << size << "\n";
-    first = false;
-  }
-
-  for (int i = 0; i < num_parts; ++i)
-  {
-    fsave << parts[i].x << " " << parts[i].y << "\n";
-  }
-
-  fsave << std::endl;
-}
 
 // Command Line Option Processing
 int find_arg_idx(int argc, char **argv, const char *option)
@@ -67,28 +52,79 @@ char *find_string_option(int argc, char **argv, const char *option, char *defaul
   return default_value;
 }
 
+vector<double> S_vals;
+vector<double> V_vals;
+vector<double> K_vals;
+vector<double> T_vals;
+vector<double> R_vals;
+
+void init_inputs()
+{
+  S_vals.resize(num_inputs);
+  V_vals.resize(num_inputs);
+  K_vals.resize(num_inputs);
+  T_vals.resize(num_inputs);
+  R_vals.resize(num_inputs);
+
+  ifstream inFile;
+  inFile.open("/global/homes/a/ag894/CS5220-HW/Parallel-BOPM/benchmarking/MSFT_benchmark.txt");
+
+  if (inFile.fail())
+  {
+    cerr << "unable to open file for reading" << endl;
+    exit(1);
+  }
+
+  string str;
+  int i = 0;
+  double S, V, K, T, R;
+  while (inFile >> S >> V >> K >> T >> R)
+  {
+    if (i >= num_inputs)
+    {
+      break;
+    }
+    S_vals[i] = S;
+    V_vals[i] = V;
+    K_vals[i] = K;
+    T_vals[i] = T;
+    R_vals[i] = R;
+
+    i++;
+  }
+}
+
 // ==============
 // Main Function
 // ==============
 
 int main(int argc, char **argv)
 {
+
+  init_inputs();
+
+  double S, V, K, T, R;
+  int N = find_int_arg(argc, argv, "-n", 100);
+
+  // file to write output for correctness
+  char *filename = find_string_option(argc, argv, "-o", nullptr);
+  ofstream output(filename);
+
+  auto start_time = std::chrono::steady_clock::now();
+
 #ifdef _OPENMP
 #pragma omp parallel default(shared)
 #endif
   {
-    for (int step = 0; step < nsteps; ++step)
+    for (int i = 0; i < num_inputs; i++)
     {
-      simulate_one_step(parts, num_parts, size);
-
-      // Save state if necessary
+      BinomialTree bt(S_vals[i], V_vals[i], N, T_vals[i] / N);
+      double value = bt.getValue(K, R);
 #ifdef _OPENMP
 #pragma omp master
 #endif
-      if (fsave.good() && (step % savefreq) == 0)
-      {
-        save(fsave, parts, num_parts, size);
-      }
+      if (output.good())
+        output << value << endl;
     }
   }
 
@@ -96,9 +132,6 @@ int main(int argc, char **argv)
 
   std::chrono::duration<double> diff = end_time - start_time;
   double seconds = diff.count();
-
-  // Finalize
-  std::cout << "Simulation Time = " << seconds << " seconds for " << num_parts << " particles.\n";
-  fsave.close();
-  delete[] parts;
+  cout << "Simulation Time Serial for " << N << " time steps and " << num_inputs << " contracts = " << seconds << endl;
+  // cout << "OPTION VALUE = " << value << endl;
 }

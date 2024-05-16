@@ -65,25 +65,24 @@ void BinomialTree::print()
     }
 }
 
-int main()
-{
-    double S, V, K, T, R, N;
-    S = 127.2;
-    V = 0.2;
-    K = 252;
-    T = 12;
-    R = 0.001;
-    N = 50000;
+// int main()
+// {
+//     double S, V, K, T, R, N;
+//     S = 127.2;
+//     V = 0.2;
+//     K = 252;
+//     T = 12;
+//     R = 0.001;
+//     N = 50000;
 
-    auto start_time = std::chrono::steady_clock::now();
-    BinomialTree bt(S, V, N, T / N);
-    double value = bt.getValue(K, R);
+//     auto start_time = std::chrono::steady_clock::now();
+//     BinomialTree bt(S, V, N, T / N);
+//     double value = bt.getValue(K, R);
 
-    auto end_time = std::chrono::steady_clock::now();
-    std::chrono::duration<double> diff = end_time - start_time;
-    double seconds = diff.count();
-    std::cout << "Simulation Time Serial = " << seconds << "\n";
-    // bt.print();
-    cout << "OPTION VALUE = " << value << endl;
-    return 0;
-}
+//     auto end_time = std::chrono::steady_clock::now();
+//     std::chrono::duration<double> diff = end_time - start_time;
+//     double seconds = diff.count();
+//     cout << "Simulation Time Serial = " << seconds << endl;
+//     cout << "OPTION VALUE = " << value << endl;
+//     return 0;
+// }
